@@ -97,4 +97,79 @@ async def main():
         print("VERDICT : blocage partiel, pas fiable.")
 
 
-asyncio.run(main())
+#   RAFALE : ~2000 requêtes au rythme du scan (groupes de 30 + pause 0,1 s)
+#   Lancer :  python test_blocage.py visible rafale
+
+JS_GROUPE = """async (urls) => {
+    return await Promise.all(urls.map(async (u) => {
+        try {
+            const r = await fetch(u);
+            const t = await r.text();
+            const ch = t.includes("Just a moment") || t.includes("cf-chl");
+            return (r.status === 200 && !ch) ? 1 : 0;
+        } catch (e) { return 0; }
+    }));
+}"""
+
+
+def cles_rafale(n=2000):
+    lettres = "abcdefghijklmnopqrstuvwxyz"
+    cles = [a + b for a in lettres for b in lettres]                      # 676
+    cles += [a + b + c for a in lettres for b in lettres for c in lettres]  # 3 lettres
+    return cles[:n]
+
+
+async def rafale():
+    import time
+    print("IP de cette machine :", mon_ip())
+    print("RAFALE : 2000 requêtes, groupes de 30, pause 0,1 s")
+    print("-" * 50)
+    cles = cles_rafale()
+    ok = bloque = 0
+    bloque_suite = 0
+    debut = time.time()
+
+    async with async_playwright() as p:
+        nav = await p.chromium.launch(headless="visible" not in sys.argv)
+        page = await nav.new_page()
+        await page.goto("https://www.redbubble.com/",
+                        wait_until="domcontentloaded", timeout=60000)
+        await page.wait_for_timeout(3000)
+
+        for i in range(0, len(cles), 30):
+            groupe = [URL_AUTO.format(c) for c in cles[i:i + 30]]
+            res = await page.evaluate(JS_GROUPE, groupe)
+            ok += sum(res)
+            nb_bloques = len(res) - sum(res)
+            bloque += nb_bloques
+            bloque_suite = bloque_suite + nb_bloques if nb_bloques else 0
+
+            fait = i + len(groupe)
+            if fait % 300 < 30 or nb_bloques:
+                duree = time.time() - debut
+                print(f"{fait}/{len(cles)} | OK {ok} | bloqués {bloque} | "
+                      f"{fait / duree:.1f} req/s")
+
+            if bloque_suite >= 60:
+                print("ARRÊT : trop de blocages à la suite (Cloudflare a réagi)")
+                break
+            await page.wait_for_timeout(100)
+
+        await nav.close()
+
+    duree = time.time() - debut
+    print("-" * 50)
+    print(f"Résultat : {ok} OK / {bloque} bloqué(s) en {duree:.0f} s "
+          f"({(ok + bloque) / duree:.1f} req/s)")
+    if bloque == 0:
+        print("VERDICT : la machine tient le rythme du scan.")
+    elif ok > 0 and bloque < 50:
+        print("VERDICT : quelques blocages, il faudra ralentir un peu.")
+    else:
+        print("VERDICT : bloqué à ce rythme.")
+
+
+if "rafale" in sys.argv:
+    asyncio.run(rafale())
+else:
+    asyncio.run(main())
