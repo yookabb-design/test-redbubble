@@ -1,0 +1,28 @@
+# Fichier pour GitHub Actions
+# À mettre dans ton dépôt GitHub ici : .github/workflows/test_blocage.yml
+# (avec test_blocage.py à la racine du dépôt)
+# Puis sur GitHub : onglet "Actions" > "Test blocage" > bouton "Run workflow"
+#
+# xvfb-run = écran virtuel : le navigateur tourne en mode "visible"
+# même si le serveur n'a pas d'écran (le mode caché est bloqué par Cloudflare)
+
+name: Test blocage
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Installer Playwright + écran virtuel
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+          sudo apt-get install -y xvfb
+      - name: Lancer le test (mode visible sur écran virtuel)
+        run: xvfb-run -a python test_blocage.py visible
