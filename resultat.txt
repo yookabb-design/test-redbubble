@@ -1,0 +1,12 @@
+IP de cette machine : 40.80.212.250
+RAFALE : 2000 requêtes, groupes de 30, pause 0,1 s
+--------------------------------------------------
+300/2000 | OK 300 | bloqués 0 | 32.3 req/s
+600/2000 | OK 600 | bloqués 0 | 48.8 req/s
+900/2000 | OK 900 | bloqués 0 | 60.4 req/s
+1200/2000 | OK 1200 | bloqués 0 | 68.8 req/s
+1500/2000 | OK 1500 | bloqués 0 | 74.3 req/s
+1800/2000 | OK 1800 | bloqués 0 | 79.4 req/s
+--------------------------------------------------
+Résultat : 2000 OK / 0 bloqué(s) en 25 s (80.3 req/s)
+VERDICT : la machine tient le rythme du scan.
