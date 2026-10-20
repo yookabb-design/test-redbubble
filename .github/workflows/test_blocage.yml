@@ -11,6 +11,9 @@ name: Test blocage
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -25,4 +28,12 @@ jobs:
           python -m playwright install --with-deps chromium
           sudo apt-get install -y xvfb
       - name: Lancer le test (mode visible sur écran virtuel)
-        run: xvfb-run -a python test_blocage.py visible rafale
+        run: xvfb-run -a python test_blocage.py visible rafale | tee resultat.txt
+      - name: Sauvegarder le résultat dans le dépôt
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add resultat.txt
+          git commit -m "Résultat du test ($(date -u +%Y-%m-%dT%H:%M:%SZ))" || echo "rien à commiter"
+          git push
